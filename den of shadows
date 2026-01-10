@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fox of Isaac: Den of Shadows</title>
+    <style>
+        :root { --glass: rgba(255, 255, 255, 0.1); }
+        body { 
+            background: #000; color: #fff; margin: 0; 
+            font-family: 'Segoe UI', sans-serif; overflow: hidden; 
+            display: flex; flex-direction: column; height: 100vh;
+            touch-action: none; user-select: none;
+        }
+
+        #header-ui { position: absolute; top: 10px; width: 100%; display: flex; justify-content: space-between; padding: 0 15px; box-sizing: border-box; z-index: 10; pointer-events: none; }
+        #ui { display: flex; gap: 6px; }
+        .heart { width: 16px; height: 16px; background: #ff4d6d; border: 2px solid #fff; border-radius: 3px; }
+        #room-info { text-align: right; font-weight: bold; font-size: 14px; text-shadow: 2px 2px #000; }
+        
+        #boss-ui { position: absolute; top: 45px; left: 50%; transform: translateX(-50%); width: 200px; height: 8px; background: #222; border: 2px solid #fff; display: none; z-index: 10; }
+        #boss-bar { width: 100%; height: 100%; background: #e74c3c; box-shadow: 0 0 10px #ff0000; transition: width 0.2s; }
+
+        #game-wrapper {
+            flex: 1; display: flex; justify-content: center; align-items: center;
+            background: #050505; overflow: hidden; position: relative;
+        }
+        canvas { 
+            background: #111; image-rendering: pixelated;
+            max-width: 100%; max-height: 100%; object-fit: contain;
+            aspect-ratio: 4 / 3; box-shadow: 0 0 50px rgba(0,0,0,0.8);
+        }
+
+        #controls { 
+            height: 240px; background: #0a0a0a; display: flex; 
+            justify-content: space-around; align-items: center; 
+            border-top: 3px solid #1a1a1a; padding: 0 10px;
+        }
+        .grid-pad { display: grid; grid-template-columns: repeat(3, 60px); gap: 12px; }
+        .btn { 
+            width: 60px; height: 60px; background: var(--glass); 
+            border: 2px solid rgba(255,255,255,0.1); border-radius: 50%; 
+            color: white; display: flex; justify-content: center; 
+            align-items: center; font-size: 22px; font-weight: bold;
+        }
+        .btn:active { background: rgba(255,255,255,0.3); transform: scale(0.9); }
+        .atk-btn { border-color: #3498db; color: #3498db; }
+
+        #death-screen { position: fixed; inset: 0; background: #000; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
+        
+        /* Esconder botões se a tela for muito grande (opcional, para estética de PC) */
+        @media (min-height: 800px) and (min-width: 1000px) {
+            #controls { height: 180px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="header-ui">
+    <div id="ui"></div>
+    <div id="room-info">SALA 0<br><small style="font-size: 8px; color: #555;">COVIL DAS SOMBRAS</small></div>
+</div>
+
+<div id="boss-ui"><div id="boss-bar"></div></div>
+
+<div id="death-screen">
+    <h1 style="color:#ff4d6d; letter-spacing: 4px;">A SOMBRA VENCEU</h1>
+    <button style="padding:12px 30px; background: none; border: 2px solid #fff; color: #fff; cursor: pointer;" onclick="location.reload()">RECOMEÇAR</button>
+</div>
+
+<div id="game-wrapper">
+    <canvas id="game"></canvas>
+</div>
+
+<div id="controls">
+    <div class="grid-pad">
+        <div></div><div class="btn" id="uBtn">▲</div><div></div>
+        <div class="btn" id="lBtn">◀</div><div class="btn" id="dBtn">▼</div><div class="btn" id="rBtn">▶</div>
+    </div>
+    <div class="grid-pad">
+        <div></div><div class="btn atk-btn" id="fUp">▲</div><div></div>
+        <div class="btn atk-btn" id="fLf">◀</div><div class="btn atk-btn" id="fDw">▼</div><div class="btn atk-btn" id="fRt">▶</div>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+canvas.width = 400; canvas.height = 300;
+
+const Game = { 
+    lives: 6, room: 0, active: true, cleared: true, type: 'HOME', 
+    particles: [], shake: 0, roomW: 400, roomH: 300, offX: 0, offY: 0
+};
+
+const input = { up: false, down: false, left: false, right: false };
+const attack = { up: false, down: false, left: false, right: false };
+
+// --- SUPORTE TECLADO (PC) ---
+window.addEventListener('keydown', (e) => {
+    const k = e.key.toLowerCase();
+    if(k === 'w' || k === 'arrowup') input.up = true;
+    if(k === 's' || k === 'arrowdown') input.down = true;
+    if(k === 'a' || k === 'arrowleft') input.left = true;
+    if(k === 'd' || k === 'arrowright') input.right = true;
+    
+    if(k === 'i') attack.up = true;
+    if(k === 'k') attack.down = true;
+    if(k === 'j') attack.left = true;
+    if(k === 'l') attack.right = true;
+});
+
+window.addEventListener('keyup', (e) => {
+    const k = e.key.toLowerCase();
+    if(k === 'w' || k === 'arrowup') input.up = false;
+    if(k === 's' || k === 'arrowdown') input.down = false;
+    if(k === 'a' || k === 'arrowleft') input.left = false;
+    if(k === 'd' || k === 'arrowright') input.right = false;
+    
+    if(k === 'i') attack.up = false;
+    if(k === 'k') attack.down = false;
+    if(k === 'j') attack.left = false;
+    if(k === 'l') attack.right = false;
+});
+
+// --- SUPORTE TOQUE (CELULAR) ---
+const bind = (id, obj, key) => {
+    const el = document.getElementById(id);
+    const set = (v) => (e) => { e.preventDefault(); obj[key] = v; };
+    el.addEventListener('touchstart', set(true)); el.addEventListener('touchend', set(false));
+    el.addEventListener('mousedown', set(true)); el.addEventListener('mouseup', set(false));
+};
+
+bind('uBtn', input, 'up'); bind('dBtn', input, 'down'); bind('lBtn', input, 'left'); bind('rBtn', input, 'right');
+bind('fUp', attack, 'up'); bind('fDw', attack, 'down'); bind('fLf', attack, 'left'); bind('fRt', attack, 'right');
+
+class Projectile {
+    constructor(x, y, dx, dy) { this.x = x; this.y = y; this.dx = dx; this.dy = dy; this.active = true; }
+    update() {
+        this.x += this.dx * 7; this.y += this.dy * 7;
+        if(this.x < Game.offX || this.x > canvas.width - Game.offX || this.y < Game.offY || this.y > canvas.height - Game.offY) this.active = false;
+    }
+    draw() { ctx.fillStyle = "#3498db"; ctx.beginPath(); ctx.arc(this.x, this.y, 4, 0, Math.PI*2); ctx.fill(); }
+}
+
+class Player {
+    constructor() { this.size = 22; this.reset(); }
+    reset() { this.x = 200; this.y = 200; this.atkTicks = 0; this.iframe = 90; }
+    update() {
+        if (!Game.active) return;
+        let s = 4.2;
+        if (input.up) this.y -= s; if (input.down) this.y += s;
+        if (input.left) this.x -= s; if (input.right) this.x += s;
+
+        this.x = Math.max(Game.offX, Math.min(this.x, canvas.width - Game.offX - this.size));
+        this.y = Math.max(Game.offY, Math.min(this.y, canvas.height - Game.offY - this.size));
+
+        if (this.atkTicks <= 0) {
+            let dx = 0, dy = 0;
+            if (attack.up) dy = -1; else if (attack.down) dy = 1;
+            else if (attack.left) dx = -1; else if (attack.right) dx = 1;
+            if (dx !== 0 || dy !== 0) {
+                projectiles.push(new Projectile(this.x + this.size/2, this.y + this.size/2, dx, dy));
+                this.atkTicks = 14;
+            }
+        }
+        if (this.atkTicks > 0) this.atkTicks--;
+        if (this.iframe > 0) this.iframe--;
+    }
+    draw() {
+        ctx.save();
+        if (this.iframe > 0) {
+            ctx.globalAlpha = Math.sin(Date.now()/50)*0.5 + 0.5;
+            ctx.strokeStyle = "#fff"; ctx.strokeRect(this.x-2, this.y-2, this.size+4, this.size+4);
+        }
+        ctx.fillStyle = "#e67e22";
+        ctx.fillRect(this.x, this.y, this.size, this.size);
+        ctx.restore();
+    }
+}
+
+class Enemy {
+    constructor(hp=20, size=24, isBoss=false, color="#ff4757") {
+        this.size = size; this.isBoss = isBoss; this.color = color;
+        this.hp = hp; this.maxHp = hp; this.alive = true;
+        let safe = false;
+        while(!safe) {
+            this.x = Game.offX + Math.random() * (Game.roomW - size);
+            this.y = Game.offY + Math.random() * (Game.roomH - size);
+            if (Math.hypot(this.x - p.x, this.y - p.y) > 140) safe = true;
+        }
+        this.vx = (Math.random()-0.5)*2.5; this.vy = (Math.random()-0.5)*2.5;
+    }
+    update() {
+        this.x += this.vx; this.y += this.vy;
+        if (this.x < Game.offX || this.x > canvas.width - Game.offX - this.size) this.vx *= -1;
+        if (this.y < Game.offY || this.y > canvas.height - Game.offY - this.size) this.vy *= -1;
+    }
+    draw() {
+        ctx.fillStyle = this.color; ctx.fillRect(this.x, this.y, this.size, this.size);
+        if(this.isBoss) document.getElementById('boss-bar').style.width = (this.hp/this.maxHp)*100 + "%";
+    }
+}
+
+let p = new Player();
+let enemies = [], projectiles = [], particles = [];
+
+function initRoom() {
+    projectiles = []; enemies = []; particles = [];
+    document.getElementById('boss-ui').style.display = 'none';
+    p.iframe = 90;
+
+    Game.roomW = 280 + Math.random() * 100;
+    Game.roomH = 180 + Math.random() * 100;
+    Game.offX = (canvas.width - Game.roomW) / 2;
+    Game.offY = (canvas.height - Game.roomH) / 2;
+
+    if (Game.room === 0) { Game.type = 'HOME'; Game.cleared = true; }
+    else if (Game.room % 10 === 0) { 
+        Game.type = 'BOSS'; Game.cleared = false; 
+        document.getElementById('boss-ui').style.display = 'block';
+        enemies.push(new Enemy(200, 50, true, "#8e44ad"));
+    } 
+    else {
+        Game.type = 'DUNGEON'; Game.cleared = false;
+        for(let i=0; i < 2 + Math.floor(Game.room/5); i++) enemies.push(new Enemy());
+    }
+    document.getElementById('room-info').innerHTML = `SALA ${Game.room}<br><small style="color:#555">COVIL DAS SOMBRAS</small>`;
+    updateHUD();
+}
+
+function updateHUD() {
+    const ui = document.getElementById('ui'); ui.innerHTML = '';
+    for(let i=0; i<Game.lives; i++) ui.innerHTML += '<div class="heart"></div>';
+}
+
+function loop() {
+    if (!Game.active) return;
+    if (Game.shake > 0) Game.shake *= 0.8;
+
+    ctx.save();
+    ctx.translate((Math.random()-0.5)*Game.shake, (Math.random()-0.5)*Game.shake);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "#1a1a1a";
+    ctx.fillRect(Game.offX, Game.offY, Game.roomW, Game.roomH);
+    ctx.strokeStyle = "#333"; ctx.strokeRect(Game.offX, Game.offY, Game.roomW, Game.roomH);
+
+    if (Game.cleared) {
+        ctx.fillStyle = "#f1c40f"; ctx.fillRect(canvas.width/2 - 25, Game.offY - 5, 50, 10);
+        if (p.y <= Game.offY) { Game.room++; initRoom(); p.y = canvas.height - Game.offY - 45; }
+    }
+
+    p.update(); p.draw();
+
+    projectiles.forEach((proj, i) => {
+        proj.update(); proj.draw();
+        enemies.forEach(e => {
+            let dist = Math.hypot(proj.x - (e.x + e.size/2), proj.y - (e.y + e.size/2));
+            if (e.alive && dist < e.size/1.8) {
+                e.hp -= 10; proj.active = false;
+                if(e.hp <= 0) { e.alive = false; Game.shake = 15; if(e.isBoss) document.getElementById('boss-ui').style.display='none'; }
+            }
+        });
+        if(!proj.active) projectiles.splice(i, 1);
+    });
+
+    enemies.forEach(e => {
+        if (!e.alive) return;
+        e.update(); e.draw();
+        let dist = Math.hypot((p.x + p.size/2) - (e.x + e.size/2), (p.y + p.size/2) - (e.y + e.size/2));
+        if (p.iframe <= 0 && dist < (p.size/2 + e.size/2.5)) {
+            Game.lives--; p.iframe = 90; updateHUD(); Game.shake = 20;
+            if (Game.lives <= 0) { Game.active = false; document.getElementById('death-screen').style.display='flex'; }
+        }
+    });
+
+    if (enemies.filter(e => e.alive).length === 0) Game.cleared = true;
+    ctx.restore();
+    requestAnimationFrame(loop);
+}
+initRoom(); loop();
+</script>
+</body>
