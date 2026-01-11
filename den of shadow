@@ -2,284 +2,377 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fox of Isaac: Den of Shadows</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Den of Shadow 💀 Darkest Soul</title>
     <style>
-        :root { --glass: rgba(255, 255, 255, 0.1); }
-        body { 
-            background: #000; color: #fff; margin: 0; 
-            font-family: 'Segoe UI', sans-serif; overflow: hidden; 
-            display: flex; flex-direction: column; height: 100vh;
-            touch-action: none; user-select: none;
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Nosifer&family=Special+Elite&display=swap');
+        * { touch-action: none; user-select: none; box-sizing: border-box; outline: none; }
+        body { margin: 0; background: #000; color: white; font-family: 'Orbitron', sans-serif; overflow: hidden; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+
+        @keyframes titleGlow {
+            0% { text-shadow: 0 0 10px #440000; transform: scale(1); }
+            50% { text-shadow: 0 0 40px #ff0000, 0 0 60px #880000; transform: scale(1.05); }
+            100% { text-shadow: 0 0 10px #440000; transform: scale(1); }
         }
 
-        #header-ui { position: absolute; top: 10px; width: 100%; display: flex; justify-content: space-between; padding: 0 15px; box-sizing: border-box; z-index: 10; pointer-events: none; }
-        #ui { display: flex; gap: 6px; }
-        .heart { width: 16px; height: 16px; background: #ff4d6d; border: 2px solid #fff; border-radius: 3px; }
-        #room-info { text-align: right; font-weight: bold; font-size: 14px; text-shadow: 2px 2px #000; }
+        .ui-screen { position: absolute; inset: 0; background: radial-gradient(circle at center, #1a0000 0%, #000000 100%); z-index: 3000; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
+        #start-screen h1 { font-family: 'Nosifer', cursive; font-size: clamp(30px, 8vw, 70px); color: #880000; animation: titleGlow 3s infinite ease-in-out; margin-bottom: 5px; }
         
-        #boss-ui { position: absolute; top: 45px; left: 50%; transform: translateX(-50%); width: 200px; height: 8px; background: #222; border: 2px solid #fff; display: none; z-index: 10; }
-        #boss-bar { width: 100%; height: 100%; background: #e74c3c; box-shadow: 0 0 10px #ff0000; transition: width 0.2s; }
+        .social-links { margin-bottom: 25px; display: flex; gap: 15px; z-index: 3001; }
+        .social-links a { color: #ff0000; text-decoration: none; font-size: 11px; border: 1px solid #500; padding: 6px 12px; background: rgba(0,0,0,0.5); transition: 0.3s; pointer-events: auto; }
+        .social-links a:hover { background: #600; color: #fff; box-shadow: 0 0 15px #f00; }
 
-        #game-wrapper {
-            flex: 1; display: flex; justify-content: center; align-items: center;
-            background: #050505; overflow: hidden; position: relative;
-        }
-        canvas { 
-            background: #111; image-rendering: pixelated;
-            max-width: 100%; max-height: 100%; object-fit: contain;
-            aspect-ratio: 4 / 3; box-shadow: 0 0 50px rgba(0,0,0,0.8);
-        }
-
-        #controls { 
-            height: 240px; background: #0a0a0a; display: flex; 
-            justify-content: space-around; align-items: center; 
-            border-top: 3px solid #1a1a1a; padding: 0 10px;
-        }
-        .grid-pad { display: grid; grid-template-columns: repeat(3, 60px); gap: 12px; }
-        .btn { 
-            width: 60px; height: 60px; background: var(--glass); 
-            border: 2px solid rgba(255,255,255,0.1); border-radius: 50%; 
-            color: white; display: flex; justify-content: center; 
-            align-items: center; font-size: 22px; font-weight: bold;
-        }
-        .btn:active { background: rgba(255,255,255,0.3); transform: scale(0.9); }
-        .atk-btn { border-color: #3498db; color: #3498db; }
-
-        #death-screen { position: fixed; inset: 0; background: #000; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
+        .btn-main { padding: 15px 50px; font-size: 18px; background: transparent; border: 2px solid #550000; color: #fff; cursor: pointer; font-family: 'Orbitron'; margin: 10px; transition: 0.3s; pointer-events: auto; }
+        .btn-main:hover { background: #550000; box-shadow: 0 0 40px #ff0000; }
         
-        /* Esconder botões se a tela for muito grande (opcional, para estética de PC) */
-        @media (min-height: 800px) and (min-width: 1000px) {
-            #controls { height: 180px; }
-        }
+        #cutscene-screen { background: black; cursor: pointer; z-index: 5000; display:none; }
+        #cutscene-text { font-family: 'Special Elite', serif; font-size: clamp(18px, 4vw, 24px); color: #bb0000; max-width: 800px; line-height: 1.6; pointer-events: none; }
+
+        #hud { position: absolute; top: 15px; left: 15px; z-index: 1000; display: none; pointer-events: none; }
+        .hud-group { background: rgba(0,0,0,0.8); padding: 8px; border-left: 3px solid #f00; margin-bottom: 5px; min-width: 180px; }
+        .bar-bg { width: 100%; height: 8px; background: #222; margin-top: 5px; }
+        .bar-fill { height: 100%; transition: width 0.2s; }
+
+        .upgrade-card { background: rgba(30, 0, 0, 0.9); border: 1px solid #500; padding: 20px; width: 220px; transition: 0.3s; cursor: pointer; pointer-events: auto; }
+        .upgrade-card:hover { border-color: #f00; box-shadow: 0 0 20px #800; transform: translateY(-5px); }
+        .upgrade-card h3 { color: #f00; margin: 0 0 10px 0; font-size: 16px; }
+        .upgrade-card p { font-size: 12px; color: #aaa; line-height: 1.4; }
+
+        .mobile-ui { position: absolute; bottom: 40px; width: 100%; display: none; justify-content: space-between; align-items: flex-end; padding: 0 30px; z-index: 2500; pointer-events: none; }
+        .joy-container { width: 130px; height: 130px; background: rgba(255,0,0,0.05); border: 2px solid rgba(255,0,0,0.2); border-radius: 50%; position: relative; pointer-events: auto; }
+        .joy-stick { width: 50px; height: 50px; background: rgba(255,0,0,0.4); border: 2px solid red; border-radius: 50%; position: absolute; top: 38px; left: 38px; pointer-events: none; }
+        .btn-dash { width: 85px; height: 85px; background: rgba(255,0,0,0.2); border: 2px solid red; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; pointer-events: auto; color: white; }
     </style>
 </head>
 <body>
 
-<div id="header-ui">
-    <div id="ui"></div>
-    <div id="room-info">SALA 0<br><small style="font-size: 8px; color: #555;">COVIL DAS SOMBRAS</small></div>
-</div>
-
-<div id="boss-ui"><div id="boss-bar"></div></div>
-
-<div id="death-screen">
-    <h1 style="color:#ff4d6d; letter-spacing: 4px;">A SOMBRA VENCEU</h1>
-    <button style="padding:12px 30px; background: none; border: 2px solid #fff; color: #fff; cursor: pointer;" onclick="location.reload()">RECOMEÇAR</button>
-</div>
-
-<div id="game-wrapper">
-    <canvas id="game"></canvas>
-</div>
-
-<div id="controls">
-    <div class="grid-pad">
-        <div></div><div class="btn" id="uBtn">▲</div><div></div>
-        <div class="btn" id="lBtn">◀</div><div class="btn" id="dBtn">▼</div><div class="btn" id="rBtn">▶</div>
+<div id="start-screen" class="ui-screen">
+    <h1>DEN OF SHADOW</h1>
+    <div class="social-links">
+        <a href="mailto:kauadarth@gmail.com">kauadarth@gmail.com</a>
+        <a href="https://youtube.com/@kaua_darth" target="_blank">YouTube @kaua_darth</a>
     </div>
-    <div class="grid-pad">
-        <div></div><div class="btn atk-btn" id="fUp">▲</div><div></div>
-        <div class="btn atk-btn" id="fLf">◀</div><div class="btn atk-btn" id="fDw">▼</div><div class="btn atk-btn" id="fRt">▶</div>
+    <button class="btn-main" onclick="initGameFlow()">ACEITAR O FARDO</button>
+</div>
+
+<div id="cutscene-screen" class="ui-screen" onclick="advanceCutscene()">
+    <div id="cutscene-text"></div>
+</div>
+
+<div id="upgrade-screen" class="ui-screen" style="display:none">
+    <h2 style="color:#660">RESTOS DE PODER</h2>
+    <div id="upgrade-list" style="display:flex; gap:15px; flex-wrap: wrap; justify-content: center;"></div>
+</div>
+
+<div id="hud">
+    <div class="hud-group"><div>VITALIDADE</div><div class="bar-bg"><div id="hp-fill" class="bar-fill" style="background:#800; width: 100%;"></div></div></div>
+    <div class="hud-group" style="border-color:#660;"><div>ALMA</div><div class="bar-bg"><div id="ammo-fill" class="bar-fill" style="background:#660; width: 100%;"></div></div></div>
+    <div style="font-size:14px; background: rgba(0,0,0,0.7); padding: 5px;">PROFUNDIDADE: <span id="room-txt">0</span>/100</div>
+</div>
+
+<div id="mobile-controls" class="mobile-ui">
+    <div class="joy-container" id="move-joy"><div class="joy-stick" id="move-stick"></div></div>
+    <div class="right-controls" style="display:flex; gap:30px; align-items:center; pointer-events:none;">
+        <div class="joy-container" id="aim-joy"><div class="joy-stick" id="aim-stick"></div></div>
+        <div class="btn-dash" ontouchstart="btnK('shift',1)" ontouchend="btnK('shift',0)">DASH</div>
     </div>
 </div>
+
+<canvas id="gameCanvas"></canvas>
 
 <script>
-const canvas = document.getElementById('game');
+const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-canvas.width = 400; canvas.height = 300;
 
-const Game = { 
-    lives: 6, room: 0, active: true, cleared: true, type: 'HOME', 
-    particles: [], shake: 0, roomW: 400, roomH: 300, offX: 0, offY: 0
+let audioCtx;
+let bufferInimigo, bufferFilha;
+
+async function initAudio() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        try {
+            const [r1, r2] = await Promise.all([
+                fetch('cry-of-pain-357978.mp3'),
+                fetch('creepy-woman-cry-407580.mp3')
+            ]);
+            bufferInimigo = await audioCtx.decodeAudioData(await r1.arrayBuffer());
+            bufferFilha = await audioCtx.decodeAudioData(await r2.arrayBuffer());
+        } catch(e) { console.warn("Áudio não carregado."); }
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playScream(isBoss, isDaughter) {
+    if (!audioCtx || !bufferInimigo) return;
+    const source = audioCtx.createBufferSource();
+    const gain = audioCtx.createGain();
+    source.buffer = (isDaughter && bufferFilha) ? bufferFilha : bufferInimigo;
+    source.playbackRate.value = isBoss ? 0.6 : 0.9 + Math.random() * 0.4;
+    gain.gain.setValueAtTime(isBoss ? 0.4 : 0.2, audioCtx.currentTime);
+    source.connect(gain); gain.connect(audioCtx.destination);
+    source.start(0);
+}
+
+const ROOM = { w: 1600, h: 1000, wall: 80 };
+const G = {
+    play: false, room: 0, hp: 100, maxHp: 100, ammo: 25, maxAmmo: 25,
+    enemiesDefeated: false, lastShot: 0, dashCooldown: 0,
+    inCutscene: false, iframe: 0, dmgMult: 1, spdMult: 1, floorMsg: null
 };
 
-const input = { up: false, down: false, left: false, right: false };
-const attack = { up: false, down: false, left: false, right: false };
-
-// --- SUPORTE TECLADO (PC) ---
-window.addEventListener('keydown', (e) => {
-    const k = e.key.toLowerCase();
-    if(k === 'w' || k === 'arrowup') input.up = true;
-    if(k === 's' || k === 'arrowdown') input.down = true;
-    if(k === 'a' || k === 'arrowleft') input.left = true;
-    if(k === 'd' || k === 'arrowright') input.right = true;
-    
-    if(k === 'i') attack.up = true;
-    if(k === 'k') attack.down = true;
-    if(k === 'j') attack.left = true;
-    if(k === 'l') attack.right = true;
-});
-
-window.addEventListener('keyup', (e) => {
-    const k = e.key.toLowerCase();
-    if(k === 'w' || k === 'arrowup') input.up = false;
-    if(k === 's' || k === 'arrowdown') input.down = false;
-    if(k === 'a' || k === 'arrowleft') input.left = false;
-    if(k === 'd' || k === 'arrowright') input.right = false;
-    
-    if(k === 'i') attack.up = false;
-    if(k === 'k') attack.down = false;
-    if(k === 'j') attack.left = false;
-    if(k === 'l') attack.right = false;
-});
-
-// --- SUPORTE TOQUE (CELULAR) ---
-const bind = (id, obj, key) => {
-    const el = document.getElementById(id);
-    const set = (v) => (e) => { e.preventDefault(); obj[key] = v; };
-    el.addEventListener('touchstart', set(true)); el.addEventListener('touchend', set(false));
-    el.addEventListener('mousedown', set(true)); el.addEventListener('mouseup', set(false));
+const STORY = {
+    init: ["Você não é um herói.", "Nunca foi... as sombras o traiu.", "A torre é o seu caminho para a vingança.", "O topo é a única saída."],
+    boss10: ["O Guardião foi silenciado.", "Ele também já teve uma família.", "Você sente o peso de cada vida?"],
+    boss20: ["A Filha do Rei implora por misericórdia...", "Mas aqui, apenas a morte é real."],
+    boss30: ["Eles imploram em línguas esquecidas.", "O Den of Shadow se alimenta da sua raiva."],
+    boss40: ["O Arquiteto das Sombras caiu.", "Ele construiu esta torre para manter algo lá fora...", "Ou para manter você aqui dentro?"],
+    boss50: ["Metade da subida.", "Não há nada lá atrás para você."],
+    boss60: ["O Carrasco das Almas não tortura mais.", "Ele gritou exatamente como suas vítimas."],
+    boss70: ["A Sombra do Passado foi dissipada.", "Você está matando suas próprias memórias para subir."],
+    boss80: ["Você está quase lá.", "Mas o que restará de você no topo?"],
+    boss90: ["O Purgatório Final.", "A escuridão aqui é tão densa que você quase pode tocá-la.", "O último teste antes do Rei."],
+    final: ["O REI DAS SOMBRAS CAIU.", "Você recuperou seu trono.", "Mas agora, você é a coisa mais sombria neste lugar."]
 };
 
-bind('uBtn', input, 'up'); bind('dBtn', input, 'down'); bind('lBtn', input, 'left'); bind('rBtn', input, 'right');
-bind('fUp', attack, 'up'); bind('fDw', attack, 'down'); bind('fLf', attack, 'left'); bind('fRt', attack, 'right');
+const FLOOR_TEXTS = {
+    55: "Você consegue ouvir os sussurros sob seus pés?",
+    65: "Suas mãos estão manchadas. A água não limpa este sangue.",
+    75: "O Rei está observando... ele sempre esteve.",
+    85: "Ninguém que subiu até aqui voltou sendo humano.",
+    95: "O fim está próximo. O abraço da sombra é quente."
+};
 
-class Projectile {
-    constructor(x, y, dx, dy) { this.x = x; this.y = y; this.dx = dx; this.dy = dy; this.active = true; }
-    update() {
-        this.x += this.dx * 7; this.y += this.dy * 7;
-        if(this.x < Game.offX || this.x > canvas.width - Game.offX || this.y < Game.offY || this.y > canvas.height - Game.offY) this.active = false;
-    }
-    draw() { ctx.fillStyle = "#3498db"; ctx.beginPath(); ctx.arc(this.x, this.y, 4, 0, Math.PI*2); ctx.fill(); }
+let currentStory = [], storyIdx = 0;
+const keys = {};
+let player = { x: 800, y: 800, r: 25, spd: 7.5, dash: 0 };
+let enemies = [], projectiles = [], enemyProjectiles = [], drops = [];
+let joyInput = { moveX: 0, moveY: 0, aimX: 0, aimY: 0 };
+
+function setupJoystick(containerId, stickId, type) {
+    const container = document.getElementById(containerId);
+    const stick = document.getElementById(stickId);
+    let touchId = null;
+    const handleInput = (e) => {
+        let touch = null;
+        if (touchId === null) { touch = e.changedTouches[0]; touchId = touch.identifier; }
+        else { for(let i=0; i<e.touches.length; i++) if(e.touches[i].identifier === touchId) touch = e.touches[i]; }
+        if (!touch) return;
+        const rect = container.getBoundingClientRect();
+        const dx = touch.clientX - (rect.left + rect.width / 2);
+        const dy = touch.clientY - (rect.top + rect.height / 2);
+        const dist = Math.min(50, Math.hypot(dx, dy));
+        const ang = Math.atan2(dy, dx);
+        const mx = Math.cos(ang) * dist; const my = Math.sin(ang) * dist;
+        stick.style.transform = `translate(${mx}px, ${my}px)`;
+        if (type === 'move') { joyInput.moveX = mx / 50; joyInput.moveY = my / 50; }
+        if (type === 'aim') { joyInput.aimX = mx / 50; joyInput.aimY = my / 50; }
+    };
+    container.addEventListener('touchstart', handleInput);
+    container.addEventListener('touchmove', e => e.preventDefault());
+    container.addEventListener('touchmove', handleInput);
+    container.addEventListener('touchend', e => { 
+        for(let i=0; i<e.changedTouches.length; i++) if(e.changedTouches[i].identifier === touchId){
+            touchId = null; stick.style.transform = `translate(0,0)`;
+            if (type === 'move') { joyInput.moveX = 0; joyInput.moveY = 0; }
+            if (type === 'aim') { joyInput.aimX = 0; joyInput.aimY = 0; }
+        }
+    });
 }
 
-class Player {
-    constructor() { this.size = 22; this.reset(); }
-    reset() { this.x = 200; this.y = 200; this.atkTicks = 0; this.iframe = 90; }
-    update() {
-        if (!Game.active) return;
-        let s = 4.2;
-        if (input.up) this.y -= s; if (input.down) this.y += s;
-        if (input.left) this.x -= s; if (input.right) this.x += s;
+function btnK(k, v) { if(v) keys[k] = true; else delete keys[k]; }
 
-        this.x = Math.max(Game.offX, Math.min(this.x, canvas.width - Game.offX - this.size));
-        this.y = Math.max(Game.offY, Math.min(this.y, canvas.height - Game.offY - this.size));
+// Início do Jogo chamando a cutscene 1
+function initGameFlow() {
+    initAudio();
+    document.getElementById('start-screen').style.display = 'none';
+    startCutscene('init');
+}
 
-        if (this.atkTicks <= 0) {
-            let dx = 0, dy = 0;
-            if (attack.up) dy = -1; else if (attack.down) dy = 1;
-            else if (attack.left) dx = -1; else if (attack.right) dx = 1;
-            if (dx !== 0 || dy !== 0) {
-                projectiles.push(new Projectile(this.x + this.size/2, this.y + this.size/2, dx, dy));
-                this.atkTicks = 14;
-            }
-        }
-        if (this.atkTicks > 0) this.atkTicks--;
-        if (this.iframe > 0) this.iframe--;
+function startGame() {
+    G.play = true; G.inCutscene = false;
+    document.getElementById('hud').style.display = 'block';
+    if('ontouchstart' in window) {
+        document.getElementById('mobile-controls').style.display = 'flex';
+        setupJoystick('move-joy', 'move-stick', 'move');
+        setupJoystick('aim-joy', 'aim-stick', 'aim');
     }
-    draw() {
-        ctx.save();
-        if (this.iframe > 0) {
-            ctx.globalAlpha = Math.sin(Date.now()/50)*0.5 + 0.5;
-            ctx.strokeStyle = "#fff"; ctx.strokeRect(this.x-2, this.y-2, this.size+4, this.size+4);
-        }
-        ctx.fillStyle = "#e67e22";
-        ctx.fillRect(this.x, this.y, this.size, this.size);
-        ctx.restore();
+    initRoom();
+}
+
+function startCutscene(key) {
+    G.play = false; G.inCutscene = true;
+    storyIdx = 0;
+    currentStory = STORY[key] || ["..."];
+    document.getElementById('cutscene-screen').style.display = 'flex';
+    document.getElementById('mobile-controls').style.display = 'none';
+    advanceCutscene();
+}
+
+function advanceCutscene() {
+    if (storyIdx < currentStory.length) {
+        document.getElementById('cutscene-text').innerText = currentStory[storyIdx++];
+    } else {
+        document.getElementById('cutscene-screen').style.display = 'none';
+        if (G.room > 0 && G.room % 10 === 0 && enemies.length === 0) openUpgradeMenu();
+        else startGame();
     }
 }
 
-class Enemy {
-    constructor(hp=20, size=24, isBoss=false, color="#ff4757") {
-        this.size = size; this.isBoss = isBoss; this.color = color;
-        this.hp = hp; this.maxHp = hp; this.alive = true;
-        let safe = false;
-        while(!safe) {
-            this.x = Game.offX + Math.random() * (Game.roomW - size);
-            this.y = Game.offY + Math.random() * (Game.roomH - size);
-            if (Math.hypot(this.x - p.x, this.y - p.y) > 140) safe = true;
-        }
-        this.vx = (Math.random()-0.5)*2.5; this.vy = (Math.random()-0.5)*2.5;
-    }
-    update() {
-        this.x += this.vx; this.y += this.vy;
-        if (this.x < Game.offX || this.x > canvas.width - Game.offX - this.size) this.vx *= -1;
-        if (this.y < Game.offY || this.y > canvas.height - Game.offY - this.size) this.vy *= -1;
-    }
-    draw() {
-        ctx.fillStyle = this.color; ctx.fillRect(this.x, this.y, this.size, this.size);
-        if(this.isBoss) document.getElementById('boss-bar').style.width = (this.hp/this.maxHp)*100 + "%";
-    }
+function openUpgradeMenu() {
+    G.play = false;
+    const list = document.getElementById('upgrade-list');
+    list.innerHTML = '';
+    document.getElementById('upgrade-screen').style.display = 'flex';
+    const opts = [
+        {n:"CARNE MORTA", d:"Vida máxima +50. A dor torna-se seu escudo.", f:()=>G.maxHp+=50},
+        {n:"ÓDIO PURO", d:"Dano +40%. Sua raiva é uma lâmina afiada.", f:()=>G.dmgMult+=0.4},
+        {n:"DESESPERO", d:"Velocidade +20%. O medo dá asas aos seus pés.", f:()=>G.spdMult+=0.2}
+    ];
+    opts.forEach(o => {
+        const card = document.createElement('div');
+        card.className = 'upgrade-card';
+        card.innerHTML = `<h3>${o.n}</h3><p>${o.d}</p>`;
+        card.onclick = () => { o.f(); G.hp=G.maxHp; G.ammo=G.maxAmmo; document.getElementById('upgrade-screen').style.display='none'; startGame(); };
+        list.appendChild(card);
+    });
 }
-
-let p = new Player();
-let enemies = [], projectiles = [], particles = [];
 
 function initRoom() {
-    projectiles = []; enemies = []; particles = [];
-    document.getElementById('boss-ui').style.display = 'none';
-    p.iframe = 90;
+    enemies = []; projectiles = []; enemyProjectiles = []; drops = [];
+    G.enemiesDefeated = false; G.floorMsg = null;
+    player.x = ROOM.w/2; player.y = ROOM.h - 150;
 
-    Game.roomW = 280 + Math.random() * 100;
-    Game.roomH = 180 + Math.random() * 100;
-    Game.offX = (canvas.width - Game.roomW) / 2;
-    Game.offY = (canvas.height - Game.roomH) / 2;
-
-    if (Game.room === 0) { Game.type = 'HOME'; Game.cleared = true; }
-    else if (Game.room % 10 === 0) { 
-        Game.type = 'BOSS'; Game.cleared = false; 
-        document.getElementById('boss-ui').style.display = 'block';
-        enemies.push(new Enemy(200, 50, true, "#8e44ad"));
-    } 
-    else {
-        Game.type = 'DUNGEON'; Game.cleared = false;
-        for(let i=0; i < 2 + Math.floor(Game.room/5); i++) enemies.push(new Enemy());
-    }
-    document.getElementById('room-info').innerHTML = `SALA ${Game.room}<br><small style="color:#555">COVIL DAS SOMBRAS</small>`;
-    updateHUD();
-}
-
-function updateHUD() {
-    const ui = document.getElementById('ui'); ui.innerHTML = '';
-    for(let i=0; i<Game.lives; i++) ui.innerHTML += '<div class="heart"></div>';
-}
-
-function loop() {
-    if (!Game.active) return;
-    if (Game.shake > 0) Game.shake *= 0.8;
-
-    ctx.save();
-    ctx.translate((Math.random()-0.5)*Game.shake, (Math.random()-0.5)*Game.shake);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = "#1a1a1a";
-    ctx.fillRect(Game.offX, Game.offY, Game.roomW, Game.roomH);
-    ctx.strokeStyle = "#333"; ctx.strokeRect(Game.offX, Game.offY, Game.roomW, Game.roomH);
-
-    if (Game.cleared) {
-        ctx.fillStyle = "#f1c40f"; ctx.fillRect(canvas.width/2 - 25, Game.offY - 5, 50, 10);
-        if (p.y <= Game.offY) { Game.room++; initRoom(); p.y = canvas.height - Game.offY - 45; }
+    if (G.room > 50 && G.room % 5 === 0 && G.room % 10 !== 0) {
+        G.floorMsg = { text: FLOOR_TEXTS[G.room] || "As vozes...", x: ROOM.w/2, y: ROOM.h/2, active: false };
     }
 
-    p.update(); p.draw();
+    if (G.room > 0 && G.room % 10 === 0) {
+        enemies.push({ x: ROOM.w/2, y: 300, hp: 800+(G.room*75), r: 100, spd: 3, isBoss: true, lastShot: 0 });
+    } else if (G.room > 0) {
+        let n = 4 + Math.floor(G.room * 0.4);
+        for(let i=0; i<n; i++) {
+            enemies.push({ 
+                x: Math.random()*(ROOM.w-200)+100, y: Math.random()*400+100, 
+                hp: 60+G.room*15, r: 30, spd: 1.5 + Math.random(), isShooter: Math.random()>0.7, lastShot: 0
+            });
+        }
+    } else G.enemiesDefeated = true; // Sala 0 inicial
+}
 
-    projectiles.forEach((proj, i) => {
-        proj.update(); proj.draw();
-        enemies.forEach(e => {
-            let dist = Math.hypot(proj.x - (e.x + e.size/2), proj.y - (e.y + e.size/2));
-            if (e.alive && dist < e.size/1.8) {
-                e.hp -= 10; proj.active = false;
-                if(e.hp <= 0) { e.alive = false; Game.shake = 15; if(e.isBoss) document.getElementById('boss-ui').style.display='none'; }
-            }
-        });
-        if(!proj.active) projectiles.splice(i, 1);
-    });
+function update() {
+    if (!G.play || G.inCutscene) return;
+    if (G.iframe > 0) G.iframe--;
 
-    enemies.forEach(e => {
-        if (!e.alive) return;
-        e.update(); e.draw();
-        let dist = Math.hypot((p.x + p.size/2) - (e.x + e.size/2), (p.y + p.size/2) - (e.y + e.size/2));
-        if (p.iframe <= 0 && dist < (p.size/2 + e.size/2.5)) {
-            Game.lives--; p.iframe = 90; updateHUD(); Game.shake = 20;
-            if (Game.lives <= 0) { Game.active = false; document.getElementById('death-screen').style.display='flex'; }
+    let mx = joyInput.moveX; let my = joyInput.moveY;
+    if (keys['w']) my = -1; if (keys['s']) my = 1; if (keys['a']) mx = -1; if (keys['d']) mx = 1;
+    if (keys['shift'] && G.dashCooldown <= 0) { player.dash = 14; G.dashCooldown = 60; }
+    if (G.dashCooldown > 0) G.dashCooldown--;
+    let s = (player.dash > 0 ? player.spd * 3 : player.spd) * G.spdMult;
+    if (player.dash > 0) player.dash--;
+
+    player.x = Math.max(ROOM.wall+player.r, Math.min(ROOM.w-ROOM.wall-player.r, player.x + mx*s));
+    player.y = Math.max(ROOM.wall+player.r, Math.min(ROOM.h-ROOM.wall-player.r, player.y + my*s));
+
+    if (G.floorMsg && !G.floorMsg.active) {
+        if (Math.hypot(player.x - G.floorMsg.x, player.y - G.floorMsg.y) < 150) {
+            G.floorMsg.active = true; playScream(false, true);
+        }
+    }
+
+    let ax = joyInput.aimX; let ay = joyInput.aimY;
+    if (keys['arrowup']||keys['up']) ay = -1; if (keys['arrowdown']||keys['down']) ay = 1; 
+    if (keys['arrowleft']||keys['left']) ax = -1; if (keys['arrowright']||keys['right']) ax = 1;
+    
+    if ((Math.abs(ax) > 0.4 || Math.abs(ay) > 0.4) && G.ammo > 0 && Date.now() - G.lastShot > 180) {
+        projectiles.push({ x: player.x, y: player.y, vx: ax*18, vy: ay*18, dmg: 50*G.dmgMult });
+        G.ammo--; G.lastShot = Date.now();
+    } else if (mx === 0 && my === 0 && Date.now() - G.lastShot > 1500) {
+        if (G.ammo < G.maxAmmo) G.ammo++;
+    }
+
+    enemies.forEach((en) => {
+        let ang = Math.atan2(player.y - en.y, player.x - en.x);
+        en.x += Math.cos(ang) * en.spd; en.y += Math.sin(ang) * en.spd;
+        if (Math.hypot(player.x-en.x, player.y-en.y) < player.r+en.r && G.iframe <= 0 && player.dash <= 0) {
+            G.hp -= 20; G.iframe = 60;
+        }
+        if ((en.isShooter || en.isBoss) && Date.now() - en.lastShot > (en.isBoss ? 1200 : 2500)) {
+            enemyProjectiles.push({ x: en.x, y: en.y, vx: Math.cos(ang)*8, vy: Math.sin(ang)*8 });
+            en.lastShot = Date.now();
         }
     });
 
-    if (enemies.filter(e => e.alive).length === 0) Game.cleared = true;
-    ctx.restore();
-    requestAnimationFrame(loop);
+    projectiles.forEach((p, pi) => {
+        p.x += p.vx; p.y += p.vy;
+        enemies.forEach((en, ei) => {
+            if (Math.hypot(p.x-en.x, p.y-en.y) < en.r) {
+                en.hp -= p.dmg; projectiles.splice(pi, 1);
+                if (en.hp <= 0) {
+                    playScream(en.isBoss, false);
+                    if (Math.random()<0.3 || en.isBoss) drops.push({x: en.x, y: en.y});
+                    enemies.splice(ei, 1);
+                    if (enemies.length === 0) G.enemiesDefeated = true;
+                }
+            }
+        });
+    });
+
+    enemyProjectiles.forEach((ep, epi) => {
+        ep.x += ep.vx; ep.y += ep.vy;
+        if (Math.hypot(player.x-ep.x, player.y-ep.y) < player.r && G.iframe <= 0) {
+            G.hp -= 15; G.iframe = 60; enemyProjectiles.splice(epi, 1);
+        }
+    });
+
+    drops.forEach((d, di) => { if (Math.hypot(player.x-d.x, player.y-d.y) < 50) { G.hp = Math.min(G.maxHp, G.hp+20); drops.splice(di, 1); } });
+
+    if (G.enemiesDefeated && player.y < 120 && Math.abs(player.x - ROOM.w/2) < 120) {
+        if (G.room > 0 && G.room % 10 === 0) {
+            startCutscene('boss' + G.room);
+        }
+        G.room++;
+        if (G.room === 101) startCutscene('final');
+        else initRoom();
+    }
+    if (G.hp <= 0) location.reload();
 }
-initRoom(); loop();
+
+function draw() {
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    if (G.play) update();
+    ctx.fillStyle = "#000"; ctx.fillRect(0,0,canvas.width, canvas.height);
+    if (!G.play && !G.inCutscene) { requestAnimationFrame(draw); return; }
+    
+    ctx.save();
+    let sc = Math.min(canvas.width/ROOM.w, canvas.height/ROOM.h) * 0.95;
+    ctx.translate(canvas.width/2, canvas.height/2); ctx.scale(sc, sc); ctx.translate(-ROOM.w/2, -ROOM.h/2);
+    ctx.fillStyle = "#050000"; ctx.fillRect(0,0,ROOM.w, ROOM.h);
+
+    if (G.floorMsg) {
+        ctx.fillStyle = G.floorMsg.active ? "#f00" : "rgba(100,0,0,0.3)";
+        ctx.font = "italic 32px 'Special Elite', serif";
+        ctx.textAlign = "center";
+        ctx.fillText(G.floorMsg.text, G.floorMsg.x, G.floorMsg.y);
+    }
+
+    ctx.fillStyle = "#100"; ctx.fillRect(0,0,ROOM.w, ROOM.wall); ctx.fillRect(0, ROOM.h-80, ROOM.w, 80);
+    if(G.enemiesDefeated) { ctx.fillStyle = "#600"; ctx.fillRect(ROOM.w/2-120, 0, 240, ROOM.wall); }
+    if (G.iframe % 4 < 2) { ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(player.x, player.y, player.r, 0, Math.PI*2); ctx.fill(); }
+    enemies.forEach(en => { ctx.fillStyle = en.isBoss ? "#600" : "#300"; ctx.beginPath(); ctx.arc(en.x, en.y, en.r, 0, Math.PI*2); ctx.fill(); });
+    projectiles.forEach(p => { ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI*2); ctx.fill(); });
+    enemyProjectiles.forEach(ep => { ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(ep.x, ep.y, 7, 0, Math.PI*2); ctx.fill(); });
+    drops.forEach(d => { ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(d.x, d.y, 12, 0, Math.PI*2); ctx.fill(); });
+    ctx.restore();
+
+    document.getElementById('hp-fill').style.width = (G.hp/G.maxHp*100) + "%";
+    document.getElementById('ammo-fill').style.width = (G.ammo/G.maxAmmo*100) + "%";
+    document.getElementById('room-txt').innerText = G.room;
+    requestAnimationFrame(draw);
+}
+draw();
+window.addEventListener('keydown', e => btnK(e.key.toLowerCase(), 1));
+window.addEventListener('keyup', e => delete keys[e.key.toLowerCase()]);
 </script>
 </body>
 </html>
